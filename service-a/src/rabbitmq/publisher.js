@@ -10,7 +10,6 @@ const RABBITMQ_PASS = process.env.RABBITMQ_PASS || 'guest';
 
 // Queue names
 const QUEUE_PATIENT_REGISTRATION = 'patient_registration';
-const QUEUE_APPOINTMENT_EVENTS = 'appointment_events';
 
 const connectRabbitMQ = async () => {
   try {
@@ -18,9 +17,7 @@ const connectRabbitMQ = async () => {
     connection = await amqp.connect(rabbitmqUrl);
     channel = await connection.createChannel();
 
-    // Assert multiple queues
     await channel.assertQueue(QUEUE_PATIENT_REGISTRATION, { durable: true });
-    await channel.assertQueue(QUEUE_APPOINTMENT_EVENTS, { durable: true });
 
     console.log('RabbitMQ Publisher connected successfully');
 
@@ -57,29 +54,6 @@ const publishPatientRegistration = async (patientData) => {
   }
 };
 
-const publishAppointmentEvent = async (eventType, appointmentData) => {
-  try {
-    if (!channel) {
-      throw new Error('RabbitMQ channel not initialized');
-    }
-
-    const message = JSON.stringify({
-      eventType,
-      data: appointmentData,
-      timestamp: new Date().toISOString()
-    });
-
-    channel.sendToQueue(QUEUE_APPOINTMENT_EVENTS, Buffer.from(message), {
-      persistent: true
-    });
-
-    console.log(`Published appointment event [${eventType}]:`, appointmentData.id);
-  } catch (error) {
-    console.error('Error publishing appointment event to RabbitMQ:', error);
-    throw error;
-  }
-};
-
 const closeRabbitMQ = async () => {
   try {
     if (channel) await channel.close();
@@ -92,6 +66,5 @@ const closeRabbitMQ = async () => {
 module.exports = {
   connectRabbitMQ,
   publishPatientRegistration,
-  publishAppointmentEvent,
   closeRabbitMQ
 };

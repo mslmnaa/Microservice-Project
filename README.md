@@ -1,6 +1,6 @@
 # 🏥 Hospital Microservices Management System
 
-Modern hospital management system built with microservices architecture, featuring JWT authentication, appointment scheduling, and prescription management.
+Modern hospital management system built with microservices architecture, featuring JWT authentication, patient management, medical records, and prescription management.
 
 ## 🎯 Enhanced Features
 
@@ -17,25 +17,13 @@ Modern hospital management system built with microservices architecture, featuri
 - Protected API endpoints
 - Token-based authentication
 
-### **NEW: Appointment Scheduling System**
-- Book doctor appointments
-- Doctor availability management
-- Appointment status tracking (scheduled, confirmed, completed, cancelled)
-- Conflict detection for double-booking prevention
-
-### **NEW: Prescription Management**
-- Create prescriptions linked to medical records
-- Track medication dosage and frequency
-- Prescription status monitoring
-- Patient prescription history
-
 ## 📐 Architecture
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
 │                     FRONTEND (React + Vite)                  │
 │                         Port 3000                            │
-│          JWT Auth │ Dashboard │ Appointments │ Patients     │
+│          JWT Auth │ Dashboard │ Patients │ Medical Records  │
 └────────────────────────┬─────────────────────────────────────┘
                          │
         ┌────────────────┴────────────────┐
@@ -43,8 +31,8 @@ Modern hospital management system built with microservices architecture, featuri
         ▼                                 ▼
 ┌──────────────────┐            ┌──────────────────┐
 │    Service A     │            │    Service B     │
-│  Pendaftaran +   │   gRPC     │  Rekam Medis +   │
-│   Appointments   │───────────▶│  Prescriptions   │
+│  Pendaftaran     │   gRPC     │   Rekam Medis    │
+│                  │───────────▶│  + Prescriptions │
 │   (Port 8001)    │            │   (Port 8002)    │
 │                  │  RabbitMQ  │                  │
 │                  │───────────▶│                  │
@@ -105,18 +93,6 @@ id, name, date_of_birth, address, phone, email, registration_date,
 has_medical_record, last_visit_date, user_id, category, emergency_contact, blood_type
 ```
 
-**doctors** (NEW)
-```sql
-id, name, specialization, email, phone, available_days[], start_time, end_time,
-is_active, created_at
-```
-
-**appointments** (NEW)
-```sql
-id, patient_id, doctor_name, appointment_date, appointment_time, duration_minutes,
-status, reason, notes, created_by, created_at, updated_at
-```
-
 ### Service B - db_rekam_medis
 
 **users** (Shared Auth Schema)
@@ -131,11 +107,11 @@ visit_date, notes, created_at, updated_at, appointment_id, status, follow_up_dat
 chief_complaint
 ```
 
-**prescriptions** (NEW)
+**prescriptions**
 ```sql
 id, medical_record_id, patient_id, prescribed_by, medication_name, dosage,
-frequency, duration_days, quantity, instructions, start_date, end_date, status,
-created_at
+frequency, duration_days, quantity, instructions, start_date, end_date,
+status, created_at
 ```
 
 **vital_signs** (NEW)
@@ -213,7 +189,7 @@ After seeding data, use these credentials:
 
 **GET** `/api/auth/me` - Get current user (requires JWT token)
 
-### Service A - Patients & Appointments
+### Service A - Patients
 
 **POST** `/api/daftar` - Register new patient
 ```json
@@ -232,30 +208,6 @@ After seeding data, use these credentials:
 
 **GET** `/api/pasien/:id` - Get patient details
 
-**POST** `/api/appointments` - Schedule appointment (Protected: admin, doctor, nurse)
-```json
-{
-  "patient_id": 1,
-  "doctor_name": "Dr. Sarah Williams",
-  "appointment_date": "2024-04-15",
-  "appointment_time": "10:00",
-  "duration_minutes": 30,
-  "reason": "Check-up",
-  "notes": "Follow-up visit"
-}
-```
-
-**GET** `/api/appointments` - List appointments with filters
-- Query params: `?patient_id=1&doctor_name=Sarah&status=scheduled&date_from=2024-04-01&date_to=2024-04-30`
-
-**GET** `/api/appointments/:id` - Get appointment details
-
-**PUT** `/api/appointments/:id` - Update appointment status/notes
-
-**GET** `/api/doctors` - List active doctors
-
-**POST** `/api/doctors` - Create doctor (Protected: admin only)
-
 ### Service B - Medical Records & Prescriptions
 
 **GET** `/api/rekam-medis/:patient_id` - Get medical records by patient ID
@@ -265,22 +217,10 @@ After seeding data, use these credentials:
 **POST** `/api/rekam-medis` - Create medical record
 
 **POST** `/api/prescriptions` - Create prescription (Protected: doctor, admin)
-```json
-{
-  "medical_record_id": 1,
-  "patient_id": 1,
-  "medication_name": "Paracetamol",
-  "dosage": "500mg",
-  "frequency": "3x sehari",
-  "duration_days": 7,
-  "quantity": 21,
-  "instructions": "Setelah makan"
-}
-```
 
-**GET** `/api/prescriptions/patient/:patient_id` - Get patient prescriptions
+**GET** `/api/prescriptions/patient/:patient_id` - Get prescriptions by patient
 
-**GET** `/api/prescriptions/:id` - Get prescription details
+**GET** `/api/prescriptions/:id` - Get prescription detail
 
 **PUT** `/api/prescriptions/:id` - Update prescription status
 
@@ -300,9 +240,8 @@ After seeding data, use these credentials:
 1. **Login** - JWT authentication with modern UI
 2. **Dashboard** - Overview statistics and quick actions
 3. **Patients** - List, search, and register patients
-4. **Appointments** - Schedule and manage doctor appointments
-5. **Medical Records** - View and update patient medical history (placeholder)
-6. **Prescriptions** - Manage medications and prescriptions (placeholder)
+4. **Medical Records** - View and update patient medical history
+5. **Prescriptions** - Manage medications and prescriptions
 
 ### Components
 - **Sidebar Navigation** - Role-based menu items
@@ -323,7 +262,6 @@ After seeding data, use these credentials:
 - **Use Case**: Event-driven medical record creation
 - **Queues**:
   - `patient_registration` - New patient registered
-  - `appointment_events` - Appointment scheduled/updated/cancelled
 - **Flow**: Service A publishes → RabbitMQ → Service B consumes → Auto-create draft records
 
 ## 🧪 Testing Flow
@@ -339,16 +277,7 @@ After seeding data, use these credentials:
    - ✅ RabbitMQ event published
    - ✅ Service B creates draft medical record
 
-3. **Schedule Appointment**:
-   - Go to Appointments page
-   - Click "Schedule Appointment"
-   - Select patient and doctor
-   - Choose date/time
-   - ✅ Appointment saved to DB-A
-   - ✅ RabbitMQ event published
-   - ✅ Service B updates medical record with appointment info
-
-4. **View Dashboard**:
+3. **View Dashboard**:
    - See patient and appointment statistics
    - Access quick actions
    - Navigate to different sections based on role
@@ -466,7 +395,7 @@ docker logs -f hospital-service-b
 
 ```
 hospital-microservices/
-├── service-a/                 # Service Pendaftaran + Appointments
+├── service-a/                 # Service Pendaftaran
 │   ├── src/
 │   │   ├── config/
 │   │   │   └── database.js
@@ -474,8 +403,7 @@ hospital-microservices/
 │   │   │   └── auth.js        # JWT middleware
 │   │   ├── routes/
 │   │   │   ├── auth.js        # Login/register
-│   │   │   ├── patient.js     # Patient CRUD
-│   │   │   └── appointment.js # Appointments
+│   │   │   └── patient.js     # Patient CRUD
 │   │   ├── utils/
 │   │   │   └── jwt.js         # JWT utilities
 │   │   ├── grpc/

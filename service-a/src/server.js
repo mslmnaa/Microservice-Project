@@ -4,7 +4,6 @@ const { initDatabase } = require('./config/database');
 const { connectRabbitMQ } = require('./rabbitmq/publisher');
 const patientRoutes = require('./routes/patient');
 const authRoutes = require('./routes/auth');
-const appointmentRoutes = require('./routes/appointment');
 
 const app = express();
 const PORT = process.env.PORT || 8001;
@@ -14,7 +13,6 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 app.use('/api/auth', authRoutes);
-app.use('/api', appointmentRoutes);
 app.use('/api', patientRoutes);
 
 app.get('/health', (req, res) => {
