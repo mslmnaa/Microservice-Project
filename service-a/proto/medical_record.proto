@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package medicalrecord;
+
+service MedicalRecordService {
+  rpc CheckMedicalRecord (CheckRequest) returns (CheckResponse);
+}
+
+message CheckRequest {
+  string name = 1;
+  string date_of_birth = 2;
+}
+
+message CheckResponse {
+  bool has_record = 1;
+  string last_visit_date = 2;
+  string message = 3;
+}

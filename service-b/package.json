@@ -1,0 +1,24 @@
+{
+  "name": "service-b-rekam-medis",
+  "version": "1.0.0",
+  "description": "Service Rekam Medis Pasien",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js"
+  },
+  "dependencies": {
+    "@grpc/grpc-js": "^1.9.14",
+    "@grpc/proto-loader": "^0.7.10",
+    "amqplib": "^0.10.3",
+    "bcryptjs": "^3.0.3",
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "express-validator": "^7.3.1",
+    "jsonwebtoken": "^9.0.3",
+    "pg": "^8.11.3"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  }
+}

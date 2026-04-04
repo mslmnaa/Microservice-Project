@@ -1,0 +1,149 @@
+version: '3.8'
+
+services:
+  db-a:
+    image: postgres:15-alpine
+    container_name: hospital-db-a
+    environment:
+      POSTGRES_DB: db_pendaftaran
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5433:5432"
+    volumes:
+      - db-a-data:/var/lib/postgresql/data
+    networks:
+      - hospital-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  db-b:
+    image: postgres:15-alpine
+    container_name: hospital-db-b
+    environment:
+      POSTGRES_DB: db_rekam_medis
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5434:5432"
+    volumes:
+      - db-b-data:/var/lib/postgresql/data
+    networks:
+      - hospital-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: hospital-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    networks:
+      - hospital-network
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+
+  service-a:
+    build:
+      context: ./service-a
+      dockerfile: Dockerfile
+    container_name: hospital-service-a
+    environment:
+      PORT: 8001
+      DB_HOST: db-a
+      DB_PORT: 5432
+      DB_NAME: db_pendaftaran
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      SERVICE_B_HOST: service-b
+      SERVICE_B_GRPC_PORT: 50051
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USER: guest
+      RABBITMQ_PASS: guest
+      JWT_SECRET: hospital-secret-key-change-in-production
+      JWT_EXPIRY: 24h
+    ports:
+      - "8001:8001"
+    networks:
+      - hospital-network
+    depends_on:
+      db-a:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      service-b:
+        condition: service_started
+    restart: unless-stopped
+
+  service-b:
+    build:
+      context: ./service-b
+      dockerfile: Dockerfile
+    container_name: hospital-service-b
+    environment:
+      PORT: 8002
+      GRPC_PORT: 50051
+      DB_HOST: db-b
+      DB_PORT: 5432
+      DB_NAME: db_rekam_medis
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USER: guest
+      RABBITMQ_PASS: guest
+      JWT_SECRET: hospital-secret-key-change-in-production
+      JWT_EXPIRY: 24h
+    ports:
+      - "8002:8002"
+      - "50051:50051"
+    networks:
+      - hospital-network
+    depends_on:
+      db-b:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: hospital-frontend
+    ports:
+      - "3000:80"
+    networks:
+      - hospital-network
+    depends_on:
+      - service-a
+      - service-b
+    restart: unless-stopped
+
+volumes:
+  db-a-data:
+    driver: local
+  db-b-data:
+    driver: local
+  rabbitmq-data:
+    driver: local
+
+networks:
+  hospital-network:
+    driver: bridge
