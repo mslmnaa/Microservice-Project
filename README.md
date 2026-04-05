@@ -501,11 +501,11 @@ This project was created for educational purposes (Jaringan Komputer Terapan cou
 
 ## 👥 Contributors
 
-- **Developer**: [Your Name]
-- **Student ID**: [Your NIM]
+
+- **Developer**: Muhammad Salman Alfarisi
+- **Student ID**: 2311501048
 - **Course**: Jaringan Komputer Terapan
-- **Institution**: [Your University]
+- **Institution**: Aisyiyah Yogyakarta University
 
 ---
 
-Made with ❤️ for learning microservices architecture
